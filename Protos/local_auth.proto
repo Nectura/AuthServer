@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "AuthServer";
+
+package localAuth;
+
+service LocalAuthRpcService {
+	rpc Login (LocalLoginRequest) returns (LocalLoginResponse);
+	rpc Register (LocalRegistrationRequest) returns (LocalRegistrationResponse);
+}
+
+message LocalLoginRequest {
+	string email_address = 1;
+	string password = 2;
+}
+
+message LocalLoginResponse {
+	string access_token = 1;
+	string refresh_token = 2;
+}
+
+message LocalRegistrationRequest {
+	string email_address = 1;
+	string name = 2;
+	string password = 3;
+}
+
+message LocalRegistrationResponse {
+}
