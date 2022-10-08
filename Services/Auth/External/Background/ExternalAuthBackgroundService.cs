@@ -2,12 +2,11 @@
 using AuthServer.Database.Models;
 using AuthServer.Database.Repositories;
 using AuthServer.Models.OAuth;
-using AuthServer.Services.Auth.External;
 using AuthServer.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
-namespace AuthServer.Services.ExternalAuth.Background;
+namespace AuthServer.Services.Auth.External.Background;
 
 public sealed class ExternalAuthBackgroundService : IHostedService
 {

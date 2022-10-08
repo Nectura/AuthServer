@@ -2,22 +2,29 @@ using System.Text;
 using AuthServer.Configuration;
 using AuthServer.Database;
 using AuthServer.Services.Auth.External;
+using AuthServer.Services.Auth.External.Background;
 using AuthServer.Services.Auth.Local;
-using AuthServer.Services.ExternalAuth.Background;
 using AuthServer.Services.Rpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .WriteTo.Console(LogEventLevel.Information)
+    .CreateLogger();
 
 builder.Services.AddLogging(loggingBuilder =>
 {
     loggingBuilder.AddConfiguration(builder.Configuration.GetSection("Logging"));
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.Warning);
-    loggingBuilder.AddSerilog();
+    loggingBuilder.AddSerilog(dispose: true);
 });
 
 var jwtAuthConfig = builder.Configuration.GetSection("JwtAuth").Get<JwtAuthConfig>();
