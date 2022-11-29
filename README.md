@@ -8,7 +8,7 @@ The project is an authentication server that supports both Local Authentication 
 
 The technology used so far:
 * ASP.NET Core (gRPC API)
-* NET 6.0
+* NET 7.0
 * EntityFrameworkCore
 * JWT Authentication
 * MSSQL
