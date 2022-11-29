@@ -35,6 +35,10 @@ builder.Services.AddLogging(loggingBuilder =>
 });
 
 var jwtAuthConfig = builder.Configuration.GetSection("JwtAuth").Get<JwtAuthConfig>();
+
+if (jwtAuthConfig == default)
+    throw new ArgumentNullException("Failed to find the 'JwtAuth' section in the config file.");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
@@ -53,6 +57,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var corsConfig = builder.Configuration.GetSection("Cors").Get<CorsConfig>();
+
+if (corsConfig == default)
+    throw new ArgumentNullException("Failed to find the 'Cors' section in the config file.");
 
 builder.Services.AddCors(options =>
 {
