@@ -107,16 +107,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseEndpoints(endpoints =>
-{
-    app.MapGrpcService<LocalAuthRpcService>();
-    app.MapGrpcService<SocialAuthRpcService>();
-
-    endpoints.MapGet("/", httpContext =>
-    {
-        httpContext.Response.Redirect("https://google.com");
-        return Task.CompletedTask;
-    });
-});
+app.MapGrpcService<LocalAuthRpcService>();
+app.MapGrpcService<SocialAuthRpcService>();
 
 app.Run();
