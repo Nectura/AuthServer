@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option csharp_namespace = "AuthServer";
+
+package socialAuth;
+
+service SocialAuthGrpcService {
+	rpc GoogleLogin (GoogleLoginRequest) returns (SocialLoginResponse);
+	rpc SpotifyLogin (SpotifyLoginRequest) returns (SocialLoginResponse);
+}
+
+message GoogleLoginRequest {
+	string id_token = 1;
+	string redirect_url = 2;
+}
+
+message SpotifyLoginRequest {
+	string auth_code = 1;
+	string redirect_url = 2;
+}
+
+message SocialLoginResponse {
+	string access_token = 1;
+	string refresh_token = 2;
+}

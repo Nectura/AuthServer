@@ -1,9 +1,16 @@
 using System.Text;
 using AuthServer.Configuration;
 using AuthServer.Database;
-using AuthServer.Services.Auth.External;
-using AuthServer.Services.Auth.External.Background;
-using AuthServer.Services.Auth.Local;
+using AuthServer.Database.Interfaces;
+using AuthServer.Database.Repositories;
+using AuthServer.Database.Repositories.Interfaces;
+using AuthServer.Services.Auth.LocalAuth;
+using AuthServer.Services.Auth.LocalAuth.Interfaces;
+using AuthServer.Services.Auth.SocialAuth;
+using AuthServer.Services.Auth.SocialAuth.Background;
+using AuthServer.Services.Auth.SocialAuth.Interfaces;
+using AuthServer.Services.Cryptography;
+using AuthServer.Services.Cryptography.Interfaces;
 using AuthServer.Services.Rpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -60,7 +67,7 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddDbContext<EntityContext>(options =>
+builder.Services.AddDbContext<IEntityContext, EntityContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Primary"), config => config.CommandTimeout(5)));
 
 builder.Services.AddOptions();
@@ -73,11 +80,17 @@ builder.Services.AddHttpClient();
 builder.Services.AddGrpc();
 builder.Services.AddAuthorization();
 
-builder.Services.AddSingleton<LocalAuthService>();
-builder.Services.AddSingleton<GoogleAuthService>();
-builder.Services.AddSingleton<SpotifyAuthService>();
+builder.Services.AddSingleton<ILocalAuthService, LocalAuthService>();
+builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
+builder.Services.AddSingleton<IAuthService, Sha3AuthService>();
 
-builder.Services.AddHostedService<ExternalAuthBackgroundService>();
+builder.Services.AddScoped<ILocalUserRepository, LocalUserRepository>();
+builder.Services.AddScoped<ILocalUserRefreshTokenRepository, LocalUserRefreshTokenRepository>();
+builder.Services.AddScoped<ISocialUserRepository, SocialUserRepository>();
+builder.Services.AddScoped<ISocialUserRefreshTokenRepository, SocialUserRefreshTokenRepository>();
+
+builder.Services.AddHostedService<SocialAuthBackgroundService>();
 
 var app = builder.Build();
 
@@ -90,7 +103,7 @@ app.UseAuthorization();
 app.UseEndpoints(endpoints =>
 {
     app.MapGrpcService<LocalAuthRpcService>();
-    app.MapGrpcService<ExternalAuthRpcService>();
+    app.MapGrpcService<SocialAuthRpcService>();
 
     endpoints.MapGet("/", httpContext =>
     {

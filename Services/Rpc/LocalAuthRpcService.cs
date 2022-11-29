@@ -1,25 +1,27 @@
 ﻿using AuthServer.Database.Models;
-using AuthServer.Database.Repositories;
-using AuthServer.Services.Auth;
-using AuthServer.Services.Auth.Local;
+using AuthServer.Database.Repositories.Interfaces;
+using AuthServer.Services.Auth.LocalAuth.Interfaces;
+using AuthServer.Services.Cryptography.Interfaces;
 using AuthServer.Validators;
+using AuthServer.Validators.Exceptions;
+using AuthServer.Validators.Requests;
 using Grpc.Core;
 
 namespace AuthServer.Services.Rpc;
 
-public sealed class LocalAuthRpcService : AuthServer.LocalAuthRpcService.LocalAuthRpcServiceBase
+public sealed class LocalAuthRpcService : LocalAuthGrpcService.LocalAuthGrpcServiceBase
 {
-    private readonly LocalAuthService _localAuthService;
-    private readonly CryptoAuthService _cryptoAuthService;
-    private readonly LocalUserRepository _userRepository;
+    private readonly ILocalAuthService _localAuthService;
+    private readonly IAuthService _authService;
+    private readonly ILocalUserRepository _userRepository;
 
     public LocalAuthRpcService(
-        LocalAuthService localAuthService,
-        CryptoAuthService cryptoAuthService,
-        LocalUserRepository userRepository)
+        ILocalAuthService localAuthService,
+        IAuthService authService,
+        ILocalUserRepository userRepository)
     {
         _localAuthService = localAuthService;
-        _cryptoAuthService = cryptoAuthService;
+        _authService = authService;
         _userRepository = userRepository;
     }
 
@@ -28,17 +30,24 @@ public sealed class LocalAuthRpcService : AuthServer.LocalAuthRpcService.LocalAu
         if (string.IsNullOrWhiteSpace(request.EmailAddress) || string.IsNullOrWhiteSpace(request.Password))
             throw new RpcException(new Status(StatusCode.FailedPrecondition, "Empty username or password"));
 
-        var userInfoValidator = new UserInfoValidator();
-
-        if (!userInfoValidator.TryValidateEmailAddress(request.EmailAddress, out _))
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, "Invalid email address"));
+        try
+        {
+            new UserInfoValidator().TryValidate(new UserInfoValidationRequest
+            {
+                Input = request.EmailAddress
+            });
+        }
+        catch (ValidationException ex)
+        {
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+        }
 
         var user = await _userRepository.FindAsync(request.EmailAddress, context.CancellationToken);
 
         if (user == default)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid username or password"));
 
-        var validCredentials = await _cryptoAuthService.CompareHashesAsync(request.Password, user.SaltHash, user.PasswordHash, context.CancellationToken);
+        var validCredentials = await _authService.CompareHashesAsync(request.Password, user.SaltHash, user.PasswordHash, context.CancellationToken);
 
         if (!validCredentials)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid username or password"));
@@ -57,21 +66,25 @@ public sealed class LocalAuthRpcService : AuthServer.LocalAuthRpcService.LocalAu
         if (string.IsNullOrWhiteSpace(request.EmailAddress) || string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Name))
             throw new RpcException(new Status(StatusCode.FailedPrecondition, "One or more fields are empty"));
 
-        var userInfoValidator = new UserInfoValidator();
-        var passwordValidator = new PasswordStructureValidator();
-
-        if (!userInfoValidator.TryValidateEmailAddress(request.EmailAddress, out _))
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, "Invalid email address"));
-
-        if (!passwordValidator.Validate(request.Password, out var validationError))
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, $"Invalid password structure: {validationError}"));
-
+        try
+        {
+            new UserInfoValidator().TryValidate(new UserInfoValidationRequest
+            {
+                Input = request.EmailAddress
+            });
+            new PasswordStructureValidator().TryValidate(new PasswordStructureValidationRequest(request.Password));
+        }
+        catch (ValidationException ex)
+        {
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+        }
+        
         var userExists = await _userRepository.AnyAsync(m => m.EmailAddress == request.EmailAddress, context.CancellationToken);
 
         if (userExists)
             throw new RpcException(new Status(StatusCode.AlreadyExists, "Email address already in use"));
 
-        var (saltHash, finalizedOutput) = await _cryptoAuthService.HashInputAsync(request.Password, context.CancellationToken);
+        var (saltHash, finalizedOutput) = await _authService.HashInputAsync(request.Password, context.CancellationToken);
 
         _userRepository.Add(new LocalUser
         {

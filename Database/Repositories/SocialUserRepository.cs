@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuthServer.Database.Repositories;
 
-public sealed class LocalUserRepository : EntityRepository<LocalUser>, ILocalUserRepository
+public sealed class SocialUserRepository : EntityRepository<SocialUser>, ISocialUserRepository
 {
-    public LocalUserRepository(IEntityContext context) : base((DbContext)context)
+    public SocialUserRepository(IEntityContext context) : base((DbContext)context)
     {
     }
 }

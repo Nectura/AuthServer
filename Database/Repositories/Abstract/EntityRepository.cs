@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using AuthServer.Database.Repositories.Abstract.Interfaces;
 
 namespace AuthServer.Database.Repositories.Abstract;
 
-public abstract class EntityRepository<T> where T : class
+public abstract class EntityRepository<T> : IEntityRepository<T> where T : class
 {
     protected readonly DbContext _context;
 
@@ -36,7 +37,7 @@ public abstract class EntityRepository<T> where T : class
         return (entity, true);
     }
 
-    public async Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<List<T>> FetchAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Set<T>().ToListAsync(cancellationToken);
     }

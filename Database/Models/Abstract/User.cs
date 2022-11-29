@@ -1,6 +1,8 @@
-﻿namespace AuthServer.Database.Models.Abstract;
+﻿using AuthServer.Database.Models.Abstract.Interfaces;
 
-public abstract class User
+namespace AuthServer.Database.Models.Abstract;
+
+public abstract class User : IUser
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = "";

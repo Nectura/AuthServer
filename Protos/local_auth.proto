@@ -4,7 +4,7 @@ option csharp_namespace = "AuthServer";
 
 package localAuth;
 
-service LocalAuthRpcService {
+service LocalAuthGrpcService {
 	rpc Login (LocalLoginRequest) returns (LocalLoginResponse);
 	rpc Register (LocalRegistrationRequest) returns (LocalRegistrationResponse);
 }

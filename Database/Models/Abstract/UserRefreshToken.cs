@@ -1,6 +1,8 @@
-﻿namespace AuthServer.Database.Models.Abstract;
+﻿using AuthServer.Database.Models.Abstract.Interfaces;
 
-public abstract class UserRefreshToken
+namespace AuthServer.Database.Models.Abstract;
+
+public abstract class UserRefreshToken : IUserRefreshToken
 {
     public Guid Id { get; set; }
     public Guid UserId { get; set; }
