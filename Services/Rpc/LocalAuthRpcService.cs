@@ -2,8 +2,8 @@
 using AuthServer.Database.Repositories.Interfaces;
 using AuthServer.Services.Auth.LocalAuth.Interfaces;
 using AuthServer.Services.Cryptography.Interfaces;
-using AuthServer.Validators;
 using AuthServer.Validators.Exceptions;
+using AuthServer.Validators.Interfaces;
 using AuthServer.Validators.Requests;
 using Grpc.Core;
 
@@ -14,15 +14,21 @@ public sealed class LocalAuthRpcService : LocalAuthGrpcService.LocalAuthGrpcServ
     private readonly ILocalAuthService _localAuthService;
     private readonly IAuthService _authService;
     private readonly ILocalUserRepository _userRepository;
+    private readonly IUserInfoValidator _userInfoValidator;
+    private readonly IPasswordStructureValidator _passwordStructureValidator;
 
     public LocalAuthRpcService(
         ILocalAuthService localAuthService,
         IAuthService authService,
-        ILocalUserRepository userRepository)
+        ILocalUserRepository userRepository,
+        IUserInfoValidator userInfoValidator,
+        IPasswordStructureValidator passwordStructureValidator)
     {
         _localAuthService = localAuthService;
         _authService = authService;
         _userRepository = userRepository;
+        _userInfoValidator = userInfoValidator;
+        _passwordStructureValidator = passwordStructureValidator;
     }
 
     public override async Task<LocalLoginResponse> Login(LocalLoginRequest request, ServerCallContext context)
@@ -32,7 +38,7 @@ public sealed class LocalAuthRpcService : LocalAuthGrpcService.LocalAuthGrpcServ
 
         try
         {
-            new UserInfoValidator().TryValidate(new UserInfoValidationRequest
+            _userInfoValidator.TryValidate(new UserInfoValidationRequest
             {
                 Input = request.EmailAddress
             });
@@ -68,20 +74,18 @@ public sealed class LocalAuthRpcService : LocalAuthGrpcService.LocalAuthGrpcServ
 
         try
         {
-            new UserInfoValidator().TryValidate(new UserInfoValidationRequest
+            _userInfoValidator.TryValidate(new UserInfoValidationRequest
             {
                 Input = request.EmailAddress
             });
-            new PasswordStructureValidator().TryValidate(new PasswordStructureValidationRequest(request.Password));
+            _passwordStructureValidator.TryValidate(new PasswordStructureValidationRequest(request.Password));
         }
         catch (ValidationException ex)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
         }
         
-        var userExists = await _userRepository.AnyAsync(m => m.EmailAddress == request.EmailAddress, context.CancellationToken);
-
-        if (userExists)
+        if (await _userRepository.AnyAsync(m => m.EmailAddress == request.EmailAddress, context.CancellationToken))
             throw new RpcException(new Status(StatusCode.AlreadyExists, "Email address already in use"));
 
         var (saltHash, finalizedOutput) = await _authService.HashInputAsync(request.Password, context.CancellationToken);

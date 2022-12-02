@@ -6,7 +6,7 @@ using AuthServer.Validators.Responses;
 
 namespace AuthServer.Validators;
 
-public sealed class UserInfoValidator : IValidator<UserInfoValidationRequest, UserInfoValidationResponse> 
+public sealed class UserInfoValidator : IUserInfoValidator
 {
     public UserInfoValidationResponse TryValidate(UserInfoValidationRequest validatorRequest)
     {

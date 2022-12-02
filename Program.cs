@@ -12,6 +12,8 @@ using AuthServer.Services.Auth.SocialAuth.Interfaces;
 using AuthServer.Services.Cryptography;
 using AuthServer.Services.Cryptography.Interfaces;
 using AuthServer.Services.Rpc;
+using AuthServer.Validators;
+using AuthServer.Validators.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -23,21 +25,19 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .WriteTo.Console(LogEventLevel.Information)
     .CreateLogger();
 
 builder.Services.AddLogging(loggingBuilder =>
 {
-    loggingBuilder.AddConfiguration(builder.Configuration.GetSection("Logging"));
+    loggingBuilder.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.Warning);
     loggingBuilder.AddSerilog(dispose: true);
 });
 
 var jwtAuthConfig = builder.Configuration.GetSection("JwtAuth").Get<JwtAuthConfig>();
-
 if (jwtAuthConfig == default)
-    throw new ArgumentNullException("Failed to find the 'JwtAuth' section in the config file.");
+    throw new ArgumentNullException(nameof(JwtAuthConfig), "Failed to find the 'JwtAuth' section in the config file.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -57,9 +57,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var corsConfig = builder.Configuration.GetSection("Cors").Get<CorsConfig>();
-
 if (corsConfig == default)
-    throw new ArgumentNullException("Failed to find the 'Cors' section in the config file.");
+    throw new ArgumentNullException(nameof(CorsConfig), "Failed to find the Cors section in the config file.");
 
 builder.Services.AddCors(options =>
 {
@@ -75,7 +74,10 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddDbContext<IEntityContext, EntityContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Primary"), config => config.CommandTimeout(5)));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Primary"))
+        .LogTo(Console.WriteLine, LogLevel.Warning)
+        //.EnableSensitiveDataLogging()
+        .EnableDetailedErrors());
 
 builder.Services.AddOptions();
 builder.Services.Configure<JwtAuthConfig>(builder.Configuration.GetSection("JwtAuth"));
@@ -91,6 +93,9 @@ builder.Services.AddSingleton<ILocalAuthService, LocalAuthService>();
 builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
 builder.Services.AddSingleton<IAuthService, Sha3AuthService>();
+
+builder.Services.AddScoped<IUserInfoValidator, UserInfoValidator>();
+builder.Services.AddScoped<IPasswordStructureValidator, PasswordStructureValidator>();
 
 builder.Services.AddScoped<ILocalUserRepository, LocalUserRepository>();
 builder.Services.AddScoped<ILocalUserRefreshTokenRepository, LocalUserRefreshTokenRepository>();

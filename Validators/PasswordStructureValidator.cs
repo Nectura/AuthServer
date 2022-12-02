@@ -6,7 +6,7 @@ using AuthServer.Validators.Responses;
 
 namespace AuthServer.Validators;
 
-public sealed class PasswordStructureValidator : IValidator<PasswordStructureValidationRequest, PasswordStructureValidationResponse>
+public sealed class PasswordStructureValidator : IPasswordStructureValidator
 {
     public PasswordStructureValidationResponse TryValidate(PasswordStructureValidationRequest request)
     {
