@@ -11,4 +11,4 @@ The technology used so far:
 * NET 7.0
 * EntityFrameworkCore
 * JWT Authentication
-* MSSQL
+* MariaDB
