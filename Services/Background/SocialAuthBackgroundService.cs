@@ -2,28 +2,29 @@
 using AuthServer.Database.Models.Interfaces;
 using AuthServer.Database.Repositories.Interfaces;
 using AuthServer.Models.OAuth;
-using AuthServer.Services.Auth.SocialAuth.Interfaces;
+using AuthServer.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Serilog;
 
-namespace AuthServer.Services.Auth.SocialAuth.Background;
+namespace AuthServer.Services.Background;
 
-public sealed class SocialAuthBackgroundService : IHostedService
+public sealed class SocialAuthBackgroundService : BackgroundService
 {
     private readonly PeriodicTimer _timer;
-    private CancellationTokenSource? _cancellationTokenSource;
     
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<SocialAuthBackgroundService> _logger;
     private readonly Dictionary<EAuthProvider, Func<string, CancellationToken, Task<OAuthAccessTokenExchangeResponse>>> _refreshTokenExchangeDictionary;
 
     public SocialAuthBackgroundService(
         IServiceScopeFactory scopeFactory,
         IGoogleAuthService googleAuthService,
-        ISpotifyAuthService spotifyAuthService)
+        ISpotifyAuthService spotifyAuthService,
+        ILogger<SocialAuthBackgroundService> logger)
     {
         _timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
         
         _scopeFactory = scopeFactory;
+        _logger = logger;
         _refreshTokenExchangeDictionary = new Dictionary<EAuthProvider, Func<string, CancellationToken, Task<OAuthAccessTokenExchangeResponse>>>
         {
             { EAuthProvider.Google, googleAuthService.ExchangeRefreshTokenAsync },
@@ -31,26 +32,14 @@ public sealed class SocialAuthBackgroundService : IHostedService
         };
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        while (!stoppingToken.IsCancellationRequested && await _timer.WaitForNextTickAsync(stoppingToken))
+            await TickAsync(stoppingToken);
         
-        Task.Run(async () =>
-        {
-            while (await _timer.WaitForNextTickAsync(_cancellationTokenSource.Token))
-                await TickAsync(cancellationToken);
-        }, cancellationToken);
-        
-        return Task.CompletedTask;
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        _cancellationTokenSource?.Cancel();
         _timer.Dispose();
-        return Task.CompletedTask;
     }
-
+    
     private async Task TickAsync(CancellationToken cancellationToken = default)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
@@ -70,9 +59,11 @@ public sealed class SocialAuthBackgroundService : IHostedService
 
     private async Task RefreshAccessTokenAsync(IExternalUserRefreshToken refreshToken, CancellationToken cancellationToken = default)
     {
+        var authProviderName = Enum.GetName(typeof(EAuthProvider), refreshToken.AuthProvider);
+        
         if (!_refreshTokenExchangeDictionary.ContainsKey(refreshToken.AuthProvider))
         {
-            Log.Warning($"Failed to refresh access token for {Enum.GetName(typeof(EAuthProvider), refreshToken.AuthProvider)} because that auth provider isn't handled.");
+            _logger.LogWarning("Failed to refresh access token for {authProviderName} because that auth provider isn't handled.", authProviderName);
             return;
         }
 
@@ -85,7 +76,7 @@ public sealed class SocialAuthBackgroundService : IHostedService
         }
         catch (Exception ex)
         {
-            Log.Warning($"Failed to refresh access token for {Enum.GetName(typeof(EAuthProvider), refreshToken.AuthProvider)}: {ex.Message}{Environment.NewLine}{ex.StackTrace}");
+            _logger.LogWarning("Failed to refresh access token for {errMsg}{newLine}{stackTrace}:", ex.Message, Environment.NewLine, ex.StackTrace);
             return;
         }
 

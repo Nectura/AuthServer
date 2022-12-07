@@ -1,9 +1,9 @@
 ﻿using AuthServer.Configuration;
 using AuthServer.Services.Abstract;
-using AuthServer.Services.Auth.LocalAuth.Interfaces;
+using AuthServer.Services.Interfaces;
 using Microsoft.Extensions.Options;
 
-namespace AuthServer.Services.Auth.LocalAuth;
+namespace AuthServer.Services;
 
 public sealed class LocalAuthService : JwtAuthService, ILocalAuthService
 {

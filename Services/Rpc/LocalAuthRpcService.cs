@@ -1,7 +1,7 @@
 ﻿using AuthServer.Database.Models;
 using AuthServer.Database.Repositories.Interfaces;
-using AuthServer.Services.Auth.LocalAuth.Interfaces;
 using AuthServer.Services.Cryptography.Interfaces;
+using AuthServer.Services.Interfaces;
 using AuthServer.Validators.Exceptions;
 using AuthServer.Validators.Interfaces;
 using AuthServer.Validators.Requests;

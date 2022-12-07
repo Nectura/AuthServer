@@ -1,11 +1,11 @@
 ﻿using AuthServer.Configuration;
 using AuthServer.Services.Abstract;
-using AuthServer.Services.Auth.SocialAuth.Interfaces;
+using AuthServer.Services.Interfaces;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RestSharp;
 
-namespace AuthServer.Services.Auth.SocialAuth;
+namespace AuthServer.Services;
 
 public sealed class SpotifyAuthService : AuthProviderService, ISpotifyAuthService
 {

@@ -1,7 +1,7 @@
 ﻿using AuthServer.Database.Models.Abstract;
 using AuthServer.Models.Jwt;
 
-namespace AuthServer.Services.Auth.LocalAuth.Interfaces;
+namespace AuthServer.Services.Interfaces;
 
 public interface ILocalAuthService
 {

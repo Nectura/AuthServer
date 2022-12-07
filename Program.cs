@@ -4,13 +4,12 @@ using AuthServer.Database;
 using AuthServer.Database.Interfaces;
 using AuthServer.Database.Repositories;
 using AuthServer.Database.Repositories.Interfaces;
-using AuthServer.Services.Auth.LocalAuth;
-using AuthServer.Services.Auth.LocalAuth.Interfaces;
-using AuthServer.Services.Auth.SocialAuth;
-using AuthServer.Services.Auth.SocialAuth.Background;
-using AuthServer.Services.Auth.SocialAuth.Interfaces;
+using AuthServer.Middlewares;
+using AuthServer.Services;
+using AuthServer.Services.Background;
 using AuthServer.Services.Cryptography;
 using AuthServer.Services.Cryptography.Interfaces;
+using AuthServer.Services.Interfaces;
 using AuthServer.Services.Rpc;
 using AuthServer.Validators;
 using AuthServer.Validators.Interfaces;
@@ -29,7 +28,7 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Services.AddLogging(loggingBuilder =>
 {
-    loggingBuilder.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning);
+    loggingBuilder.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Information);
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.Warning);
     loggingBuilder.AddSerilog(dispose: true);
@@ -73,8 +72,12 @@ builder.Services.AddCors(options =>
         });
 });
 
+var dbConStr = builder.Configuration.GetConnectionString("AuthServer");
+if (dbConStr == default)
+    throw new ArgumentNullException(nameof(AuthServer), "Failed to find the AuthServer connection string.");
+
 builder.Services.AddDbContext<IEntityContext, EntityContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Primary"))
+    options.UseMySql(dbConStr, ServerVersion.AutoDetect(dbConStr))
         .LogTo(Console.WriteLine, LogLevel.Warning)
         //.EnableSensitiveDataLogging()
         .EnableDetailedErrors());
@@ -93,6 +96,7 @@ builder.Services.AddSingleton<ILocalAuthService, LocalAuthService>();
 builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
 builder.Services.AddSingleton<IAuthService, Sha3AuthService>();
+builder.Services.AddTransient<GlobalExceptionMiddleware>();
 
 builder.Services.AddScoped<IUserInfoValidator, UserInfoValidator>();
 builder.Services.AddScoped<IPasswordStructureValidator, PasswordStructureValidator>();
@@ -114,5 +118,7 @@ app.UseAuthorization();
 
 app.MapGrpcService<LocalAuthRpcService>();
 app.MapGrpcService<SocialAuthRpcService>();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.Run();

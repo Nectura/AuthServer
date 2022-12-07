@@ -1,7 +1,7 @@
 ﻿using AuthServer.Database.Enums;
 using AuthServer.Database.Models;
 using AuthServer.Database.Repositories.Interfaces;
-using AuthServer.Services.Auth.SocialAuth.Interfaces;
+using AuthServer.Services.Interfaces;
 using Google.Apis.Auth;
 using Grpc.Core;
 
