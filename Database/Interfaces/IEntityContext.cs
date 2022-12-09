@@ -7,6 +7,7 @@ public interface IEntityContext
 {
     DbSet<LocalUser> LocalUsers { get; set; }
     DbSet<SocialUser> SocialUsers { get; set; }
+    DbSet<SocialUserAuthProviderToken> SocialUserAuthProviderTokens { get; set; }
     DbSet<LocalUserRefreshToken> LocalUserRefreshTokens { get; set; }
     DbSet<SocialUserRefreshToken> SocialUserRefreshTokens { get; set; }
     

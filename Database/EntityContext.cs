@@ -10,6 +10,7 @@ public sealed class EntityContext : DbContext, IEntityContext
 {
     public DbSet<LocalUser> LocalUsers { get; set; }
     public DbSet<SocialUser> SocialUsers { get; set; }
+    public DbSet<SocialUserAuthProviderToken> SocialUserAuthProviderTokens { get; set; }
     public DbSet<LocalUserRefreshToken> LocalUserRefreshTokens { get; set; }
     public DbSet<SocialUserRefreshToken> SocialUserRefreshTokens { get; set; }
 
@@ -30,15 +31,18 @@ public sealed class EntityContext : DbContext, IEntityContext
             .HasMany(m => m.RefreshTokens)
             .WithOne(m => m.User)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<SocialUser>()
+            .HasMany(m => m.AuthProviderTokens)
+            .WithOne(m => m.User)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<LocalUserRefreshToken>()
-            .HasOne(m => m.User)
-            .WithMany(m => m.RefreshTokens)
-            .OnDelete(DeleteBehavior.NoAction);
+            .HasIndex(m => new { m.RefreshToken, m.PreviousRefreshToken });
 
         builder.Entity<SocialUserRefreshToken>()
-            .HasOne(m => m.User)
-            .WithMany(m => m.RefreshTokens)
-            .OnDelete(DeleteBehavior.NoAction);
+            .HasIndex(m => new { m.RefreshToken, m.PreviousRefreshToken });
+
+        builder.Entity<SocialUserAuthProviderToken>()
+            .HasKey(m => new { m.UserId, m.AuthProvider });
     }
 }

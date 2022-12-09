@@ -2,24 +2,64 @@ syntax = "proto3";
 
 option csharp_namespace = "AuthServer";
 
-package socialAuth;
+package auth;
 
 service SocialAuthGrpcService {
+	rpc InitializeLoginFlow (InitializeLoginFlowRequest) returns (InitializeLoginFlowResponse);
+	rpc RefreshAccessToken (SocialUserRefreshAccessTokenRequest) returns (SocialLoginResponse);
 	rpc GoogleLogin (GoogleLoginRequest) returns (SocialLoginResponse);
 	rpc SpotifyLogin (SpotifyLoginRequest) returns (SocialLoginResponse);
+	rpc TwitchLogin (TwitchLoginRequest) returns (SocialLoginResponse);
+	rpc DiscordLogin (DiscordLoginRequest) returns (SocialLoginResponse);
+}
+
+message InitializeLoginFlowRequest {
+	ESocialProvider provider = 1;
+	string redirectUrl = 2;
+	bool useExtendedScopes = 3;
+}
+
+message InitializeLoginFlowResponse {
+	string authUrl = 1;
 }
 
 message GoogleLoginRequest {
-	string id_token = 1;
-	string redirect_url = 2;
+	string idToken = 1;
+	string redirectUrl = 2;
+	string state = 3;
 }
 
 message SpotifyLoginRequest {
-	string auth_code = 1;
-	string redirect_url = 2;
+	string authCode = 1;
+	string redirectUrl = 2;
+	string state = 3;
+}
+
+message TwitchLoginRequest {
+	string authCode = 1;
+	repeated string scopes = 2;
+	string state = 3;
+	string redirectUrl = 4;
+}
+
+message DiscordLoginRequest {
+	string authCode = 1;
+	string redirectUrl = 2;
+	string state = 3;
 }
 
 message SocialLoginResponse {
-	string access_token = 1;
-	string refresh_token = 2;
+	string accessToken = 1;
+	string refreshToken = 2;
+}
+
+message SocialUserRefreshAccessTokenRequest {
+	string refreshToken = 1;
+}
+
+enum ESocialProvider {
+	Google = 0;
+	Spotify = 1;
+	Twitch = 2;
+	Discord = 3;
 }

@@ -6,6 +6,5 @@ public interface ILocalUser : IUser
 {
     byte[] PasswordHash { get; set; }
     byte[] SaltHash { get; set; }
-    DateTime PasswordUpdatedAt { get; set; }
-    ICollection<LocalUserRefreshToken>? RefreshTokens { get; set; }
+    string? ProfilePicture { get; set; }
 }

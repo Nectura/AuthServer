@@ -13,11 +13,15 @@ using AuthServer.Services.Interfaces;
 using AuthServer.Services.Rpc;
 using AuthServer.Validators;
 using AuthServer.Validators.Interfaces;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
+using TwitchLib.Api;
+using TwitchLib.Api.Core;
+using TwitchLib.Api.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +37,27 @@ builder.Services.AddLogging(loggingBuilder =>
     loggingBuilder.AddFilter("Microsoft.EntityFrameworkCore.Infrastructure", LogLevel.Warning);
     loggingBuilder.AddSerilog(dispose: true);
 });
+
+var googleAuthConfig = builder.Configuration.GetSection("GoogleAuth").Get<GoogleAuthConfig>();
+if (googleAuthConfig == default)
+    throw new ArgumentNullException(nameof(GoogleAuthConfig), "Failed to find the 'GoogleAuth' section in the config file.");
+
+builder.Services.AddSingleton(new GoogleJsonWebSignature.ValidationSettings
+{
+    Audience = new[] { googleAuthConfig.JwtAudience },
+    ExpirationTimeClockTolerance = TimeSpan.FromSeconds(60),
+    IssuedAtClockTolerance = TimeSpan.FromSeconds(60)
+});
+
+var twitchConfig = builder.Configuration.GetSection("TwitchAuth").Get<TwitchAuthConfig>();
+if (twitchConfig == default)
+    throw new ArgumentNullException(nameof(TwitchAuthConfig), "Failed to find the 'TwitchAuth' section in the config file.");
+
+builder.Services.AddSingleton<ITwitchAPI>(new TwitchAPI(settings: new ApiSettings
+{
+    ClientId = twitchConfig.AuthProviderClientId,
+    Secret = twitchConfig.AuthProviderClientSecret
+}));
 
 var jwtAuthConfig = builder.Configuration.GetSection("JwtAuth").Get<JwtAuthConfig>();
 if (jwtAuthConfig == default)
@@ -84,9 +109,12 @@ builder.Services.AddDbContext<IEntityContext, EntityContext>(options =>
 
 builder.Services.AddOptions();
 builder.Services.Configure<JwtAuthConfig>(builder.Configuration.GetSection("JwtAuth"));
+builder.Services.Configure<SocialAuthConfig>(builder.Configuration.GetSection("SocialAuth"));
 builder.Services.Configure<LocalAuthConfig>(builder.Configuration.GetSection("LocalAuth"));
 builder.Services.Configure<SpotifyAuthConfig>(builder.Configuration.GetSection("SpotifyAuth"));
 builder.Services.Configure<GoogleAuthConfig>(builder.Configuration.GetSection("GoogleAuth"));
+builder.Services.Configure<TwitchAuthConfig>(builder.Configuration.GetSection("TwitchAuth"));
+builder.Services.Configure<DiscordAuthConfig>(builder.Configuration.GetSection("DiscordAuth"));
 
 builder.Services.AddHttpClient();
 builder.Services.AddGrpc();
@@ -95,6 +123,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddSingleton<ILocalAuthService, LocalAuthService>();
 builder.Services.AddSingleton<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddSingleton<ISpotifyAuthService, SpotifyAuthService>();
+builder.Services.AddSingleton<ITwitchAuthService, TwitchAuthService>();
+builder.Services.AddSingleton<IDiscordAuthService, DiscordAuthService>();
+builder.Services.AddSingleton<ISocialAuthService, SocialAuthService>();
 builder.Services.AddSingleton<IAuthService, Sha3AuthService>();
 builder.Services.AddTransient<GlobalExceptionMiddleware>();
 
@@ -105,6 +136,7 @@ builder.Services.AddScoped<ILocalUserRepository, LocalUserRepository>();
 builder.Services.AddScoped<ILocalUserRefreshTokenRepository, LocalUserRefreshTokenRepository>();
 builder.Services.AddScoped<ISocialUserRepository, SocialUserRepository>();
 builder.Services.AddScoped<ISocialUserRefreshTokenRepository, SocialUserRefreshTokenRepository>();
+builder.Services.AddScoped<ISocialUserAuthProviderTokenRepository, SocialUserAuthProviderTokenRepository>();
 
 builder.Services.AddHostedService<SocialAuthBackgroundService>();
 

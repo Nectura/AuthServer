@@ -2,28 +2,33 @@ syntax = "proto3";
 
 option csharp_namespace = "AuthServer";
 
-package localAuth;
+package auth;
 
 service LocalAuthGrpcService {
 	rpc Login (LocalLoginRequest) returns (LocalLoginResponse);
 	rpc Register (LocalRegistrationRequest) returns (LocalRegistrationResponse);
+	rpc RefreshAccessToken (LocalUserRefreshAccessTokenRequest) returns (LocalLoginResponse);
 }
 
 message LocalLoginRequest {
-	string email_address = 1;
+	string emailAddress = 1;
 	string password = 2;
 }
 
 message LocalLoginResponse {
-	string access_token = 1;
-	string refresh_token = 2;
+	string accessToken = 1;
+	string refreshToken = 2;
 }
 
 message LocalRegistrationRequest {
-	string email_address = 1;
+	string emailAddress = 1;
 	string name = 2;
 	string password = 3;
 }
 
 message LocalRegistrationResponse {
+}
+
+message LocalUserRefreshAccessTokenRequest {
+	string refreshToken = 1;
 }

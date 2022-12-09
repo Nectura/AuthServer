@@ -1,9 +1,10 @@
 ﻿using AuthServer.Configuration;
+using AuthServer.Models.UserInfo;
+using AuthServer.Models.UserInfo.Interfaces;
 using AuthServer.Services.Abstract;
 using AuthServer.Services.Interfaces;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using RestSharp;
+using SpotifyAPI.Web;
 
 namespace AuthServer.Services;
 
@@ -12,22 +13,23 @@ public sealed class SpotifyAuthService : AuthProviderService, ISpotifyAuthServic
     public SpotifyAuthService(
         HttpClient httpClient,
         IOptions<SpotifyAuthConfig> authProviderConfig,
-        IOptions<JwtAuthConfig> authConfig) : base(httpClient, authProviderConfig, authConfig)
+        IOptions<JwtAuthConfig> authConfig,
+        ISocialAuthService socialAuthService) : base(httpClient, authProviderConfig, authConfig, socialAuthService)
     {
     }
-
-    public async Task<string> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
+    
+    public override async Task<IUserInfo> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
     {
-        using var restClient = BuildRestClient(((SpotifyAuthConfig)_authProviderConfig).UserMeEndpoint);
+        var spotifyClient = new SpotifyClient(accessToken);
 
-        var request = new RestRequest(string.Empty);
-        request.AddHeader("Authorization", $"Bearer {accessToken}");
-
-        var response = await restClient.ExecuteAsync(request, cancellationToken);
-
-        if (!response.IsSuccessful)
-            throw new Exception("[Spotify] Failed to exchange the access token for the user's email address.");
-
-        return JsonConvert.DeserializeObject<dynamic>(response.Content!)!.id;
+        var userInfo = await spotifyClient.UserProfile.Current(cancellationToken);
+        
+        return new SpotifyUserInfo
+        {
+            AuthProviderUserId = userInfo.Id,
+            Name = userInfo.DisplayName,
+            EmailAddress = userInfo.Email,
+            ProfileImage = userInfo.Images.FirstOrDefault()?.Url ?? string.Empty
+        };
     }
 }

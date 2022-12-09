@@ -1,9 +1,9 @@
-﻿using AuthServer.Database.Models.Abstract;
-using AuthServer.Models.Jwt;
+﻿using AuthServer.Models.Jwt;
+using AuthServer.Models.UserInfo.Interfaces;
 
 namespace AuthServer.Services.Interfaces;
 
 public interface ILocalAuthService
 {
-    JwtCredential CreateJwtCredential(User user);
+    JwtCredential CreateJwtCredential(IUserInfo userInfo);
 }

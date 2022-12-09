@@ -40,8 +40,8 @@ namespace AuthServer.Migrations
                         .IsRequired()
                         .HasColumnType("longblob");
 
-                    b.Property<DateTime>("PasswordUpdatedAt")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("ProfilePicture")
+                        .HasColumnType("longtext");
 
                     b.Property<byte[]>("SaltHash")
                         .IsRequired()
@@ -61,15 +61,18 @@ namespace AuthServer.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("ExpiresAt")
+                    b.Property<DateTime>("AbsoluteExpirationTime")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PreviousRefreshToken")
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("RefreshToken")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasColumnType("varchar(255)");
 
-                    b.Property<int>("Scopes")
-                        .HasColumnType("int");
+                    b.Property<byte>("Scopes")
+                        .HasColumnType("tinyint unsigned");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
@@ -77,6 +80,8 @@ namespace AuthServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("RefreshToken", "PreviousRefreshToken");
 
                     b.ToTable("LocalUserRefreshTokens");
                 });
@@ -89,6 +94,9 @@ namespace AuthServer.Migrations
 
                     b.Property<int>("AuthProvider")
                         .HasColumnType("int");
+
+                    b.Property<string>("AuthProviderUserId")
+                        .HasColumnType("longtext");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -109,18 +117,17 @@ namespace AuthServer.Migrations
                     b.ToTable("SocialUsers");
                 });
 
-            modelBuilder.Entity("AuthServer.Database.Models.SocialUserRefreshToken", b =>
+            modelBuilder.Entity("AuthServer.Database.Models.SocialUserAuthProviderToken", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
+
+                    b.Property<int>("AuthProvider")
+                        .HasColumnType("int");
 
                     b.Property<string>("AccessToken")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<int>("AuthProvider")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime(6)");
@@ -133,12 +140,35 @@ namespace AuthServer.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.HasKey("UserId", "AuthProvider");
+
+                    b.ToTable("SocialUserAuthProviderTokens");
+                });
+
+            modelBuilder.Entity("AuthServer.Database.Models.SocialUserRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("AbsoluteExpirationTime")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PreviousRefreshToken")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("RefreshToken")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("RefreshToken", "PreviousRefreshToken");
 
                     b.ToTable("SocialUserRefreshTokens");
                 });
@@ -148,7 +178,18 @@ namespace AuthServer.Migrations
                     b.HasOne("AuthServer.Database.Models.LocalUser", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AuthServer.Database.Models.SocialUserAuthProviderToken", b =>
+                {
+                    b.HasOne("AuthServer.Database.Models.SocialUser", "User")
+                        .WithMany("AuthProviderTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -159,7 +200,7 @@ namespace AuthServer.Migrations
                     b.HasOne("AuthServer.Database.Models.SocialUser", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -172,6 +213,8 @@ namespace AuthServer.Migrations
 
             modelBuilder.Entity("AuthServer.Database.Models.SocialUser", b =>
                 {
+                    b.Navigation("AuthProviderTokens");
+
                     b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618

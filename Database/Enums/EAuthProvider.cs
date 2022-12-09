@@ -3,5 +3,7 @@
 public enum EAuthProvider
 {
     Google,
-    Spotify
+    Spotify,
+    Twitch,
+    Discord
 }

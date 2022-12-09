@@ -18,9 +18,9 @@ public abstract class EntityRepository<T> : IEntityRepository<T> where T : class
         return await Query(expression).AnyAsync(cancellationToken);
     }
 
-    public async Task<T?> FindAsync<TPK>(TPK primaryKey, CancellationToken cancellationToken = default)
+    public async Task<T?> FindAsync(CancellationToken cancellationToken = default, params object[] primaryKeyComponents)
     {
-        return await _context.Set<T>().FindAsync(new object?[] { primaryKey }, cancellationToken: cancellationToken);
+        return await _context.Set<T>().FindAsync(primaryKeyComponents, cancellationToken: cancellationToken);
     }
 
     public async Task<(T entity, bool justCreated)> FindOrCreateAsync(Expression<Func<T, bool>> searchExpression, Func<T> creationMethod, CancellationToken cancellationToken = default)

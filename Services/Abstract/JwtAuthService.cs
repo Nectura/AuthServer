@@ -3,9 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using AuthServer.Configuration;
 using AuthServer.Configuration.Abstract;
-using AuthServer.Database.Models.Abstract;
 using AuthServer.Extensions;
 using AuthServer.Models.Jwt;
+using AuthServer.Models.UserInfo.Interfaces;
 using AuthServer.Services.Abstract.Interfaces;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -25,9 +25,9 @@ public abstract class JwtAuthService : IJwtAuthService
         _tokenConfig = tokenConfig.Value;
     }
 
-    public JwtCredential CreateJwtCredential(User user)
+    public JwtCredential CreateJwtCredential(IUserInfo userInfo)
     {
-        var securityToken = ConstructJwtSecurityToken(user);
+        var securityToken = ConstructJwtSecurityToken(userInfo);
         var jwtToken = new JwtSecurityTokenHandler().WriteToken(securityToken);
         var refreshToken = StringExtensions.GenerateCryptoSafeToken();
 
@@ -39,16 +39,21 @@ public abstract class JwtAuthService : IJwtAuthService
         };
     }
 
-    private JwtSecurityToken ConstructJwtSecurityToken(User user)
+    protected virtual HashSet<Claim> CreateUserClaims(IUserInfo userInfo)
     {
-        var claims = new List<Claim>
+        return new HashSet<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Sub, userInfo.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.NameId, userInfo.Name),
+            new(JwtRegisteredClaimNames.Email, userInfo.EmailAddress)
         };
+    }
 
+    private JwtSecurityToken ConstructJwtSecurityToken(IUserInfo userInfo)
+    {
+        var claims = CreateUserClaims(userInfo);
         var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authConfig.PrivateTokenKey));
-
         var securityToken = new JwtSecurityToken(
             issuer: _authConfig.Issuer,
             audience: _tokenConfig.JwtAudience,
@@ -56,7 +61,6 @@ public abstract class JwtAuthService : IJwtAuthService
             claims: claims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
         );
-
         return securityToken;
     }
 }

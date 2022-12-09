@@ -3,10 +3,8 @@ using AuthServer.Database.Models.Abstract.Interfaces;
 
 namespace AuthServer.Database.Models.Interfaces;
 
-public interface IExternalUserRefreshToken : IUserRefreshToken
+public interface ISocialUser : IUser
 {
-    SocialUser? User { get; set; }
+    string? AuthProviderUserId { get; set; }
     EAuthProvider AuthProvider { get; set; }
-    string AccessToken { get; set; }
-    string Scopes { get; set; }
 }

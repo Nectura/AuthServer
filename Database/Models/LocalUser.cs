@@ -7,7 +7,7 @@ public sealed class LocalUser : User, ILocalUser
 {
     public byte[] PasswordHash { get; set; } = Array.Empty<byte>();
     public byte[] SaltHash { get; set; } = Array.Empty<byte>();
-    public DateTime PasswordUpdatedAt { get; set; } = DateTime.UtcNow;
-
+    public string? ProfilePicture { get; set; }
+    
     public ICollection<LocalUserRefreshToken>? RefreshTokens { get; set; }
 }

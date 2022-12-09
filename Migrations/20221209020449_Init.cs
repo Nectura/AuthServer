@@ -21,7 +21,8 @@ namespace AuthServer.Migrations
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     PasswordHash = table.Column<byte[]>(type: "longblob", nullable: false),
                     SaltHash = table.Column<byte[]>(type: "longblob", nullable: false),
-                    PasswordUpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    ProfilePicture = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Name = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     EmailAddress = table.Column<string>(type: "longtext", nullable: false)
@@ -40,6 +41,8 @@ namespace AuthServer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    AuthProviderUserId = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     AuthProvider = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -59,11 +62,13 @@ namespace AuthServer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    Scopes = table.Column<int>(type: "int", nullable: false),
+                    Scopes = table.Column<byte>(type: "tinyint unsigned", nullable: false),
                     UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    RefreshToken = table.Column<string>(type: "longtext", nullable: false)
+                    RefreshToken = table.Column<string>(type: "varchar(255)", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    PreviousRefreshToken = table.Column<string>(type: "varchar(255)", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AbsoluteExpirationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -72,7 +77,34 @@ namespace AuthServer.Migrations
                         name: "FK_LocalUserRefreshTokens_LocalUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "LocalUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "SocialUserAuthProviderTokens",
+                columns: table => new
+                {
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    AuthProvider = table.Column<int>(type: "int", nullable: false),
+                    AccessToken = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RefreshToken = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Scopes = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SocialUserAuthProviderTokens", x => new { x.UserId, x.AuthProvider });
+                    table.ForeignKey(
+                        name: "FK_SocialUserAuthProviderTokens_SocialUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "SocialUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -81,15 +113,12 @@ namespace AuthServer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    AuthProvider = table.Column<int>(type: "int", nullable: false),
-                    AccessToken = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Scopes = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
-                    RefreshToken = table.Column<string>(type: "longtext", nullable: false)
+                    RefreshToken = table.Column<string>(type: "varchar(255)", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                    PreviousRefreshToken = table.Column<string>(type: "varchar(255)", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AbsoluteExpirationTime = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -98,14 +127,25 @@ namespace AuthServer.Migrations
                         name: "FK_SocialUserRefreshTokens_SocialUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "SocialUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LocalUserRefreshTokens_RefreshToken_PreviousRefreshToken",
+                table: "LocalUserRefreshTokens",
+                columns: new[] { "RefreshToken", "PreviousRefreshToken" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_LocalUserRefreshTokens_UserId",
                 table: "LocalUserRefreshTokens",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SocialUserRefreshTokens_RefreshToken_PreviousRefreshToken",
+                table: "SocialUserRefreshTokens",
+                columns: new[] { "RefreshToken", "PreviousRefreshToken" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_SocialUserRefreshTokens_UserId",
@@ -118,6 +158,9 @@ namespace AuthServer.Migrations
         {
             migrationBuilder.DropTable(
                 name: "LocalUserRefreshTokens");
+
+            migrationBuilder.DropTable(
+                name: "SocialUserAuthProviderTokens");
 
             migrationBuilder.DropTable(
                 name: "SocialUserRefreshTokens");

@@ -1,9 +1,9 @@
-﻿using AuthServer.Database.Models.Abstract;
-using AuthServer.Models.Jwt;
+﻿using AuthServer.Models.Jwt;
+using AuthServer.Models.UserInfo.Interfaces;
 
 namespace AuthServer.Services.Abstract.Interfaces;
 
 public interface IJwtAuthService
 {
-    public JwtCredential CreateJwtCredential(User user);
+    public JwtCredential CreateJwtCredential(IUserInfo userInfo);
 }

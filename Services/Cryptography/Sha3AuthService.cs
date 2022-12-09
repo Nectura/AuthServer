@@ -5,9 +5,9 @@ using AuthServer.Services.Cryptography.Interfaces;
 namespace AuthServer.Services.Cryptography;
 
 /*
- * Hashing Algorithm: SHA3
- * Hashing Method: hash(hash(pw)+salt)
- */
+* Hashing Algorithm: SHA3
+* Hashing Method: hash(hash(pw)+salt)
+*/
 public sealed class Sha3AuthService : IAuthService
 {
     private const int CryptoSafeStringGenerationLength = 32;
