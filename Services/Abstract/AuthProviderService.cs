@@ -82,7 +82,7 @@ public abstract class AuthProviderService : JwtAuthService, IAuthProviderService
 
         var encodedScopes = WebUtility.UrlEncode(string.Join("+", useExtendedScopes ? _authProviderConfig.ExtendedAuthScopes : _authProviderConfig.MinimalAuthScopes));
         
-        var requestModel = new OAuthTwitchAuthorizationCodeRequest
+        var requestModel = new OAuthAuthorizationCodeRequest
         {
             ClientId = _authProviderConfig.AuthProviderClientId,
             RedirectUri = redirectUrl,
